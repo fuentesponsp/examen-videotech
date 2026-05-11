@@ -1,4 +1,6 @@
-﻿public class Pelicula{
+﻿using MySql.Data.MySqlClient;
+
+public class Pelicula{
     private string titulo;
     private string director;
     private int anyo;
@@ -37,6 +39,87 @@
         return $"{titulo} - {director} ({anyo})";
     }
 }
+
+public class GestorBD
+{
+    private MySqlConnection conexion;
+
+    public GestorBD()
+    {
+        MySqlConnectionStringBuilder builder = new MySqlConnectionStringBuilder
+        {
+            Server = "localhost",
+            UserID = "root",
+            Password = "12345678",
+            Database = "videotech"
+        };
+
+        conexion = new MySqlConnection(builder.ConnectionString);
+    }
+
+    public void Insertar(Pelicula p)
+    {
+        try
+        {
+            conexion.Open();
+
+            string query = "INSERT INTO peliculas (titulo, director, anyo, disponible) VALUES (@titulo, @director, @anyo, @disponible)";
+            MySqlCommand comando = new MySqlCommand(query, conexion);
+
+            comando.Parameters.AddWithValue("@titulo", p.getTitulo());
+            comando.Parameters.AddWithValue("@director", p.getDirector());
+            comando.Parameters.AddWithValue("@anyo", p.getAnyo());
+            comando.Parameters.AddWithValue("@disponible", p.isDisponible());
+
+            comando.ExecuteNonQuery();
+        }
+        finally
+        {
+            if (conexion.State == System.Data.ConnectionState.Open)
+            {
+                conexion.Close();
+            }
+        }
+    }
+
+    public List<Pelicula> ObtenerTodos()
+    {
+        List<Pelicula> peliculas = new List<Pelicula>();
+
+        try
+        {
+            conexion.Open();
+
+            string query = "SELECT * FROM peliculas";
+            MySqlCommand comando = new MySqlCommand(query, conexion);
+
+            MySqlDataReader reader = comando.ExecuteReader();
+
+            while (reader.Read())
+            {
+                string titulo = reader.GetString("titulo");
+                string director = reader.GetString("director");
+                int anyo = reader.GetInt32("anyo");
+                bool disponible = reader.GetBoolean("disponible");
+
+                Pelicula p = new Pelicula(titulo, director, anyo, disponible);
+                peliculas.Add(p);
+            }
+
+            reader.Close();
+        }
+        finally
+        {
+            if (conexion.State == System.Data.ConnectionState.Open)
+            {
+                conexion.Close();
+            }
+        }
+
+        return peliculas;
+    }
+}
+
 public class main
 {
     public static void Main(string[] args)
